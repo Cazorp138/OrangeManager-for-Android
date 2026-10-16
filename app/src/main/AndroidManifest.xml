@@ -1,0 +1,38 @@
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <!-- 缺这一条 vibrate() 会抛 SecurityException（被 catch 吞掉），通知就永远不震 -->
+    <uses-permission android:name="android.permission.VIBRATE" />
+    <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM" />
+    <!--
+      Android 13+ 的精确闹钟走这一条：它是普通权限，装完即生效，
+      不需要用户去系统设置里手动开。
+      只声明 SCHEDULE_EXACT_ALARM 的话默认是不授权的 —— 那时代码只能退回
+      非精确闹钟，表现就是"到点不响、晚几分钟"，这正是延迟的来源。
+      两个都声明才能覆盖 Android 12（需要用户授权）和 13+（自动授予）。
+    -->
+    <uses-permission android:name="android.permission.USE_EXACT_ALARM" />
+    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
+    <!-- 锁屏点亮屏幕：普通 heads-up 通知不会唤醒屏幕，只有 full-screen intent 会 -->
+    <uses-permission android:name="android.permission.USE_FULL_SCREEN_INTENT" />
+    <application android:allowBackup="true" android:icon="@drawable/ic_orange_manager" android:roundIcon="@mipmap/ic_launcher" android:label="橘manager" android:theme="@android:style/Theme.Material.Light.NoActionBar">
+        <receiver android:name=".ReminderReceiver" android:exported="false" />
+        <!--
+          开机 / 覆盖安装后把闹钟重排回来。
+          exported 必须是 true：闹钟是被系统进程（uid 1000）广播的，不是本应用自己发的，
+          exported=false 时这个广播可能送不进来。BOOT_COMPLETED 和 MY_PACKAGE_REPLACED
+          都是受保护广播，第三方应用无法伪造，所以 exported=true 不会带来安全风险。
+        -->
+        <receiver android:name=".BootReceiver" android:exported="true">
+            <intent-filter>
+                <action android:name="android.intent.action.BOOT_COMPLETED" />
+                <action android:name="android.intent.action.MY_PACKAGE_REPLACED" />
+            </intent-filter>
+        </receiver>
+        <activity android:name=".MainActivity" android:exported="true">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+    </application>
+</manifest>
